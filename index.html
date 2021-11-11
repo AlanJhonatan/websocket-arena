@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket enviroment</title>
+</head>
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
+
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    background: #7C968F;
+  }
+
+  #form {
+    margin-bottom: .75rem;
+  }
+
+  .container {
+    height: 300px;
+    width: 300px;
+    background: #E4E8E7;
+    box-shadow: lightslategray 1px 1px;
+    position: relative;
+  }
+
+  .player {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: black;
+  }
+</style>
+<body>
+  <div id="form">
+    <input type="color" name="player-color" id="player-color">
+    <input type="text" name="player-name" id="player-name" placeholder="Digite um nome">
+    <button id="btn-start-game">Jogar</button>
+  </div>
+  <div class="container">
+    <!-- <div class="player"></div> -->
+  </div>
+
+  <script src="https://unpkg.com/@popperjs/core@2/dist/umd/popper.min.js"></script>
+  <script src="https://unpkg.com/tippy.js@6/dist/tippy-bundle.umd.js"></script>
+
+  <script src="/socket.io/socket.io.js"></script>
+</body>
+
+<script>
+class Player {
+  constructor(props, socket) {
+    this.instantiatePlayer(props);
+    this.defineRules();
+    this.createControls();
+    this.createProperties();
+  }
+
+  instantiatePlayer({ name='Default Name', color='#000' }) {
+    const container = document.querySelector('.container');
+
+    const playerInstance = document.createElement('div');
+    playerInstance.classList.add('player');
+    playerInstance.setAttribute('id', 'player');
+    playerInstance.style.background = color;
+
+    container.append(playerInstance);
+
+    this.tip = tippy('#player', {
+      content: name,
+      hideOnClick: false
+    })[0];
+    this.tip.show();
+
+    this.playerInstance = playerInstance;
+    socket.emit('new-player', {
+      id: socket.id,
+      name: name,
+      color: color
+    });
+  }
+
+  defineRules() { 
+    this.bounds = {
+      top: 0,
+      down: 290,
+      right: 290,
+      left: 0,
+    }
+  }
+
+  createProperties() {
+    this.x = 0;
+    this.y = 0;
+    this.playerSpeed = 5;
+
+    this.playerInstance.style.top = `${this.x}px`;
+    this.playerInstance.style.left = `${this.y}px`;
+  }
+
+  createControls() {
+    document.addEventListener('keydown', (event) => {
+      const { key } = event;
+
+      if (this.controls[key]) {
+        this.controls[key]();
+      }
+    })
+  }
+
+  controls = {
+    "ArrowUp": () => { this.doMoveUp() },
+    "ArrowDown": () => { this.doMoveDown() },
+    "ArrowRight": () => { this.doMoveRight() },
+    "ArrowLeft": () => { this.doMoveLeft() },
+
+    "w": () => { this.doMoveUp() },
+    "s": () => { this.doMoveDown() },
+    "d": () => { this.doMoveRight() },
+    "a": () => { this.doMoveLeft() },
+  }
+
+  blinkTip() {
+    this.tip.hide();
+    this.tip.show();
+  }
+
+  doMoveUp() {
+    this.y -= this.playerSpeed;
+    this.playerInstance.style.top = `${this.y}px`;
+    this.blinkTip();
+  }
+
+  doMoveDown() {
+    this.y += this.playerSpeed;
+    this.playerInstance.style.top = `${this.y}px`;
+    this.blinkTip();
+  }
+
+  doMoveRight() {
+    this.x += this.playerSpeed;
+    this.playerInstance.style.left = `${this.x}px`;
+    this.blinkTip();
+  }
+  doMoveLeft() {
+    this.x -= this.playerSpeed;
+    this.playerInstance.style.left = `${this.x}px`;
+    this.blinkTip();
+  }
+}
+
+const inputColor = document.querySelector("#player-color");
+const inputName = document.querySelector("#player-name");
+const btnStartGame = document.querySelector("#btn-start-game");
+
+let socket = io();
+
+btnStartGame.addEventListener('click', function (event) {
+  const props = {
+    color: inputColor.value,
+    name: inputName.value,
+  }
+
+  const player = new Player(props, socket);
+
+  inputColor.remove();
+  inputName.remove();
+  this.remove();
+});
+
+// setInterval(() => {
+//   // console.log(player)
+// }, 50)
+
+</script>
+</html>
